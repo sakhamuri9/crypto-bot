@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import argparse
 from binance_client import BinanceClient
 from coinbase_client import CoinbaseClient
+from mock_coinbase_client import MockCoinbaseClient
 from strategy import TradingStrategy
 from backtester import Backtester
 from live_trader import LiveTrader
@@ -160,13 +161,23 @@ def run_live_trading(args):
     logger.info(f"Starting live trading for {args.symbol} with {args.timeframe} timeframe")
     logger.info(f"Exchange: {args.exchange}")
     
-    if args.exchange == 'binance':
-        client = BinanceClient(testnet=True)
-    elif args.exchange == 'coinbase':
-        client = CoinbaseClient()
+    if args.test_mode:
+        logger.info("Using mock client for test mode")
+        if args.exchange == 'binance':
+            client = BinanceClient(testnet=True)
+        elif args.exchange == 'coinbase':
+            client = MockCoinbaseClient()
+        else:
+            logger.error(f"Invalid exchange: {args.exchange}")
+            return
     else:
-        logger.error(f"Invalid exchange: {args.exchange}")
-        return
+        if args.exchange == 'binance':
+            client = BinanceClient(testnet=True)
+        elif args.exchange == 'coinbase':
+            client = CoinbaseClient()
+        else:
+            logger.error(f"Invalid exchange: {args.exchange}")
+            return
     
     try:
         balance = client.get_account_balance()
