@@ -49,17 +49,31 @@ class CoinbaseClient:
         message = timestamp + method + request_path + body
         
         try:
-            private_key = self.private_key.replace("-----BEGIN EC PRIVATE KEY-----\\n", "")
+            logger.info(f"Signature message: {message}")
+            logger.info(f"API Key: {self.api_key[:10]}...")
+            
+            private_key = self.private_key
+            private_key = private_key.replace("-----BEGIN EC PRIVATE KEY-----\\n", "")
             private_key = private_key.replace("\\n-----END EC PRIVATE KEY-----\\n", "")
             private_key = private_key.replace("-----BEGIN EC PRIVATE KEY-----\n", "")
             private_key = private_key.replace("\n-----END EC PRIVATE KEY-----\n", "")
             private_key = private_key.replace("\\n", "")
             
-            key_bytes = base64.b64decode(private_key)
+            logger.info(f"Cleaned private key (first 10 chars): {private_key[:10]}...")
+            
+            try:
+                key_bytes = base64.b64decode(private_key)
+                logger.info("Successfully decoded private key")
+            except Exception as decode_error:
+                logger.error(f"Error decoding private key: {decode_error}")
+                raise
             
             signature = hmac.new(key_bytes, message.encode('utf-8'), hashlib.sha256).digest()
+            encoded_signature = base64.b64encode(signature).decode('utf-8')
             
-            return base64.b64encode(signature).decode('utf-8')
+            logger.info(f"Generated signature (first 10 chars): {encoded_signature[:10]}...")
+            
+            return encoded_signature
         except Exception as e:
             logger.error(f"Error generating signature: {e}")
             raise
