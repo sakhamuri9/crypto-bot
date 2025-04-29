@@ -9,6 +9,9 @@ load_dotenv()
 API_KEY = os.getenv('BINANCE_API_KEY', '')
 API_SECRET = os.getenv('BINANCE_API_SECRET', '')
 
+COINBASE_API_KEY = os.getenv('COINBASE_API_KEY', '')
+PRIVATE_KEY = os.getenv('COINBASE_PRIVATE_KEY', '')
+
 SYMBOL = 'BTCUSDT'
 TIMEFRAME = '1h'  # 1 hour candles
 LOOKBACK_PERIOD = 100  # Number of candles to analyze

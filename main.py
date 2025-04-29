@@ -9,8 +9,10 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import argparse
 from binance_client import BinanceClient
+from coinbase_client import CoinbaseClient
 from strategy import TradingStrategy
 from backtester import Backtester
+from live_trader import LiveTrader
 import config
 
 logging.basicConfig(
@@ -31,12 +33,17 @@ def parse_args():
                         choices=['backtest', 'live'],
                         help='Trading mode: backtest or live')
     
+    parser.add_argument('--exchange', type=str, default='binance',
+                        choices=['binance', 'coinbase'],
+                        help='Exchange to use (default: binance)')
+    
     parser.add_argument('--symbol', type=str, default=config.SYMBOL,
                         help=f'Trading pair symbol (default: {config.SYMBOL})')
     
     parser.add_argument('--timeframe', type=str, default=config.TIMEFRAME,
                         help=f'Kline interval (default: {config.TIMEFRAME})')
     
+    # Backtest specific arguments
     parser.add_argument('--start-date', type=str,
                         default=(datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d'),
                         help='Start date for backtest in format YYYY-MM-DD (default: 6 months ago)')
@@ -50,6 +57,25 @@ def parse_args():
     
     parser.add_argument('--output-dir', type=str, default='results',
                         help='Directory to save results (default: results)')
+    
+    # Live trading specific arguments
+    parser.add_argument('--interval', type=int, default=60,
+                        help='Interval between checks in seconds for live trading (default: 60)')
+    
+    parser.add_argument('--runtime', type=int, default=None,
+                        help='Maximum runtime in seconds for live trading (default: None, run indefinitely)')
+    
+    parser.add_argument('--risk-per-trade', type=float, default=0.02,
+                        help='Percentage of account balance to risk per trade (default: 0.02)')
+    
+    parser.add_argument('--stop-loss', type=float, default=0.02,
+                        help='Stop loss percentage (default: 0.02)')
+    
+    parser.add_argument('--take-profit', type=float, default=0.04,
+                        help='Take profit percentage (default: 0.04)')
+    
+    parser.add_argument('--test-mode', action='store_true',
+                        help='Run in test mode without executing actual trades')
     
     return parser.parse_args()
 
@@ -124,6 +150,58 @@ def run_backtest(args):
     
     return results, metrics
 
+def run_live_trading(args):
+    """
+    Run live trading with the specified parameters.
+    
+    Args:
+        args: Command line arguments
+    """
+    logger.info(f"Starting live trading for {args.symbol} with {args.timeframe} timeframe")
+    logger.info(f"Exchange: {args.exchange}")
+    
+    if args.exchange == 'binance':
+        client = BinanceClient(testnet=True)
+    elif args.exchange == 'coinbase':
+        client = CoinbaseClient()
+    else:
+        logger.error(f"Invalid exchange: {args.exchange}")
+        return
+    
+    try:
+        balance = client.get_account_balance()
+        logger.info(f"Account balance: ${balance:.2f}")
+    except Exception as e:
+        logger.error(f"Error getting account balance: {e}")
+        return
+    
+    strategy = TradingStrategy()
+    
+    trader = LiveTrader(
+        client=client,
+        strategy=strategy,
+        symbol=args.symbol,
+        timeframe=args.timeframe,
+        risk_per_trade=args.risk_per_trade,
+        stop_loss_pct=args.stop_loss,
+        take_profit_pct=args.take_profit
+    )
+    
+    if args.test_mode:
+        logger.info("Running in TEST MODE - no actual trades will be executed")
+        
+        trader.open_position = lambda side, price: logger.info(f"TEST MODE: Would open {side} position at {price}")
+        trader.close_position = lambda: logger.info("TEST MODE: Would close position")
+    
+    try:
+        trader.run(interval_seconds=args.interval, max_runtime=args.runtime)
+    except KeyboardInterrupt:
+        logger.info("Live trading stopped by user")
+    except Exception as e:
+        logger.error(f"Error in live trading: {e}")
+    
+    logger.info("Live trading completed")
+
 def main():
     """Main function."""
     args = parse_args()
@@ -131,8 +209,7 @@ def main():
     if args.mode == 'backtest':
         run_backtest(args)
     elif args.mode == 'live':
-        logger.error("Live trading mode not implemented yet")
-        print("Live trading mode not implemented yet")
+        run_live_trading(args)
     else:
         logger.error(f"Invalid mode: {args.mode}")
         print(f"Invalid mode: {args.mode}")

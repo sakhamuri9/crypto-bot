@@ -1,10 +1,10 @@
 # Advanced Crypto Trading Bot
 
-This is a Python-based trading bot that generates buy and sell signals for cryptocurrency trading using data from Binance Sandbox. The bot implements a complex trading strategy combining multiple technical indicators and includes risk management features.
+This is a Python-based trading bot that generates buy and sell signals for cryptocurrency trading using data from Binance Sandbox or Coinbase Advanced API. The bot implements a complex trading strategy combining multiple technical indicators and includes risk management features.
 
 ## Features
 
-- Connects to Binance Sandbox API to fetch historical price data
+- Connects to Binance Sandbox API or Coinbase Advanced API to fetch historical price data
 - Implements an advanced trading strategy using multiple technical indicators:
   - RSI (Relative Strength Index)
   - MACD (Moving Average Convergence Divergence)
@@ -39,11 +39,13 @@ cd crypto-trading-bot
 pip install -r requirements.txt
 ```
 
-3. Create a `.env` file with your Binance API credentials:
+3. Create a `.env` file with your API credentials:
 ```
 cp .env.example .env
 ```
-Then edit the `.env` file and add your Binance Sandbox API key and secret.
+Then edit the `.env` file and add your API credentials:
+- For Binance: Add your Binance Sandbox API key and secret
+- For Coinbase: Add your Coinbase Advanced API key and private key
 
 ## Usage
 
@@ -91,6 +93,51 @@ You can customize the backtest parameters:
 python main.py --mode backtest --symbol ETHUSDT --timeframe 4h --start-date 2023-01-01 --end-date 2023-12-31 --initial-capital 5000
 ```
 
+### Live Trading
+
+To run the bot in live trading mode:
+
+```
+python main.py --mode live --exchange coinbase --symbol BTC-USD
+```
+
+This will connect to the specified exchange API, fetch the latest data, generate trading signals, and execute trades based on those signals.
+
+You can customize the live trading parameters:
+
+```
+python main.py --mode live --exchange coinbase --symbol ETH-USD --timeframe 15m --interval 30 --risk-per-trade 0.01 --stop-loss 0.02 --take-profit 0.04
+```
+
+Parameters:
+- `--exchange`: Exchange to use (binance or coinbase)
+- `--symbol`: Trading pair symbol (default: BTCUSDT for Binance, BTC-USD for Coinbase)
+- `--timeframe`: Candle interval (default: 1h)
+- `--interval`: Seconds between checks (default: 60)
+- `--runtime`: Maximum runtime in seconds (default: None, run indefinitely)
+- `--risk-per-trade`: Percentage of account balance to risk per trade (default: 0.02)
+- `--stop-loss`: Stop loss percentage (default: 0.02)
+- `--take-profit`: Take profit percentage (default: 0.04)
+- `--test-mode`: Run in test mode without executing actual trades
+
+### Testing Live Trading
+
+For testing the live trading functionality without executing actual trades:
+
+```
+python test_live_trading.py --exchange coinbase --test-mode
+```
+
+This will run the live trader in test mode, which simulates trade execution without actually placing orders. It's useful for verifying that your strategy generates the expected signals and would execute trades correctly.
+
+You can customize the test parameters:
+
+```
+python test_live_trading.py --exchange coinbase --symbol ETH-USD --timeframe 15m --interval 30 --runtime 300 --test-mode
+```
+
+The `--runtime` parameter specifies how long the test should run in seconds (default: 300 seconds).
+
 ### Output
 
 The backtest will generate:
@@ -113,9 +160,12 @@ You can modify the trading parameters in the `config.py` file:
 
 - `main.py`: Entry point for the application
 - `binance_client.py`: Client for interacting with Binance API
+- `coinbase_client.py`: Client for interacting with Coinbase Advanced API
 - `indicators.py`: Technical indicators implementation
 - `strategy.py`: Trading strategy implementation
 - `backtester.py`: Backtesting module
+- `live_trader.py`: Live trading implementation
+- `test_live_trading.py`: Script to test live trading functionality
 - `config.py`: Configuration settings
 - `generate_sample_data.py`: Script to generate sample historical data
 - `run_backtest.py`: Script to run backtest with sample data
