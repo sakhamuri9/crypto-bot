@@ -138,6 +138,28 @@ python test_live_trading.py --exchange coinbase --symbol ETH-USD --timeframe 15m
 
 The `--runtime` parameter specifies how long the test should run in seconds (default: 300 seconds).
 
+### Mock Client for Testing
+
+The bot includes a mock client implementation for testing without API authentication:
+
+```
+python main.py --mode live --exchange coinbase --symbol BTC-USD --test-mode
+```
+
+When running in test mode, the bot uses a mock client that:
+- Generates realistic price data with built-in volatility
+- Simulates account balances and order execution
+- Calculates all technical indicators
+- Provides a complete testing environment without requiring API credentials
+
+This is useful for:
+- Developing and testing trading strategies without API access
+- Debugging the trading logic without making real API calls
+- Testing the bot's behavior in different market conditions
+- Verifying signal generation and trade execution logic
+
+The mock client generates a full year of historical data to ensure all indicators can be properly calculated.
+
 ### Output
 
 The backtest will generate:
