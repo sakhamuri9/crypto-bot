@@ -26,7 +26,7 @@ class CoinbaseClient:
             api_key (str, optional): Coinbase API key
             private_key (str, optional): Coinbase private key
         """
-        self.api_key = api_key or config.API_KEY
+        self.api_key = api_key or config.COINBASE_API_KEY
         self.private_key = private_key or config.PRIVATE_KEY
         self.base_url = "https://api.coinbase.com"
         self.advanced_trade_url = "https://api.coinbase.com/api/v3/brokerage"
