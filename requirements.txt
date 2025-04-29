@@ -1,0 +1,7 @@
+python-binance>=1.0.16
+pandas
+numpy
+matplotlib
+scikit-learn
+ta
+python-dotenv
