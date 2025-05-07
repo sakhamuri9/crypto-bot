@@ -183,6 +183,8 @@ def add_indicators(df):
         
         df['resistance'] = np.nan
         df['support'] = np.nan
+        df['resistance_tests'] = 0
+        df['support_tests'] = 0
         
         for peak in peaks:
             df.iloc[peak, df.columns.get_loc('resistance')] = df.iloc[peak]['close']
@@ -192,6 +194,24 @@ def add_indicators(df):
         
         df['resistance'] = df['resistance'].fillna(method='ffill')
         df['support'] = df['support'].fillna(method='ffill')
+        
+        resistance_zone_threshold = 0.005  # 0.5% threshold
+        support_zone_threshold = 0.005     # 0.5% threshold
+        
+        for i in range(1, len(df)):
+            if df['resistance'].iloc[i] > 0:
+                price_to_res_ratio = (df['high'].iloc[i] - df['resistance'].iloc[i]) / df['resistance'].iloc[i]
+                if -resistance_zone_threshold <= price_to_res_ratio <= 0.001:
+                    df.iloc[i, df.columns.get_loc('resistance_tests')] = df.iloc[i-1, df.columns.get_loc('resistance_tests')] + 1
+                else:
+                    df.iloc[i, df.columns.get_loc('resistance_tests')] = df.iloc[i-1, df.columns.get_loc('resistance_tests')]
+            
+            if df['support'].iloc[i] > 0:
+                price_to_sup_ratio = (df['low'].iloc[i] - df['support'].iloc[i]) / df['support'].iloc[i]
+                if -0.001 <= price_to_sup_ratio <= support_zone_threshold:
+                    df.iloc[i, df.columns.get_loc('support_tests')] = df.iloc[i-1, df.columns.get_loc('support_tests')] + 1
+                else:
+                    df.iloc[i, df.columns.get_loc('support_tests')] = df.iloc[i-1, df.columns.get_loc('support_tests')]
         
         df['dist_to_resistance'] = (df['resistance'] - df['close']) / df['close']
         df['dist_to_support'] = (df['close'] - df['support']) / df['close']
