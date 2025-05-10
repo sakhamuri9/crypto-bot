@@ -43,3 +43,4 @@ TRAILING_STOP_PCT = 0.015  # Trailing stop percentage
 ATR_STOP_LOSS_MULTIPLIER = 2.0  # ATR multiplier for dynamic stop loss
 ATR_TAKE_PROFIT_MULTIPLIER = 4.0  # ATR multiplier for dynamic take profit
 MAX_DRAWDOWN_PCT = 0.15  # Maximum allowed drawdown before reducing position size
+INITIAL_CAPITAL = 10000.0  # Initial capital for backtesting

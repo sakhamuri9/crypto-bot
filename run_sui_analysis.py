@@ -12,7 +12,7 @@ import json
 from coindesk_client import CoinDeskClient
 from indicators import add_indicators
 from strategy import TradingStrategy
-from backtester import Backtester
+from sui_backtester import Backtester
 from support_resistance import calculate_dynamic_support_resistance, detect_sr_breakouts
 import config
 
