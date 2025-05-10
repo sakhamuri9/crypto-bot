@@ -151,7 +151,7 @@ def cluster_price_levels(price_points, tolerance_pct=1.0):
     
     return price_levels
 
-def detect_btc_resistance_levels(df, num_levels=5, include_historical=True):
+def detect_btc_resistance_levels(df, num_levels=5, include_historical=False):
     """
     Detect BTC resistance levels using a modified approach.
     
@@ -195,19 +195,23 @@ def detect_btc_resistance_levels(df, num_levels=5, include_historical=True):
     resistance_levels = [(level, count) for level, count in unique_levels.items()]
     resistance_levels.sort(key=lambda x: x[1], reverse=True)
     
-    if include_historical:
-        above_current = [level for level, _ in resistance_levels if level > current_price]
-        below_current = [level for level, _ in resistance_levels if level <= current_price]
-        
-        below_current.sort(key=lambda x: current_price - x)
-        
-        filtered_levels = above_current + below_current
-    else:
-        filtered_levels = [level for level, _ in resistance_levels if level > current_price]
+    filtered_levels = [level for level, _ in resistance_levels if level > current_price]
     
+    if len(filtered_levels) < num_levels:
+        near_current = [level for level, _ in resistance_levels 
+                       if level <= current_price and level >= current_price * 0.995]
+        near_current.sort(reverse=True)
+        filtered_levels.extend(near_current)
+        
+        # Still ensure we only return levels above current price
+        filtered_levels = [level for level in filtered_levels if level > current_price]
+    
+    filtered_levels.sort()
+    
+    # Take the closest num_levels to current price
     top_levels = filtered_levels[:num_levels]
     
-    logger.info(f"Detected {len(top_levels)} resistance levels")
+    logger.info(f"Detected {len(top_levels)} resistance levels above current price")
     
     return top_levels
 
@@ -383,7 +387,8 @@ def main():
         
         df = get_data('BTC-USDT-VANILLA-PERPETUAL', timeframe, interval)
         
-        resistance_levels = detect_btc_resistance_levels(df, num_levels=5, include_historical=True)
+        # Set include_historical=False to only show resistance levels above current price
+        resistance_levels = detect_btc_resistance_levels(df, num_levels=5, include_historical=False)
         
         support_levels = detect_support_levels(df, num_levels=5)
         
@@ -399,7 +404,8 @@ def main():
         
         sui_df = get_data('SUI-USDT-VANILLA-PERPETUAL', timeframe, interval)
         
-        sui_resistance_levels = detect_btc_resistance_levels(sui_df, num_levels=5, include_historical=True)
+        # Set include_historical=False to only show resistance levels above current price
+        sui_resistance_levels = detect_btc_resistance_levels(sui_df, num_levels=5, include_historical=False)
         
         sui_support_levels = detect_support_levels(sui_df, num_levels=5)
         
