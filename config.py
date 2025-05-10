@@ -8,6 +8,7 @@ load_dotenv()
 
 API_KEY = os.getenv('BINANCE_API_KEY', '')
 API_SECRET = os.getenv('BINANCE_API_SECRET', '')
+COINDESK_API_KEY = '01d76bad5bada316e6df17b512d7e2c1835923a1b89382db1b4d5cbc26b50d17'
 
 SYMBOL = 'BTCUSDT'
 TIMEFRAME = '1h'  # 1 hour candles

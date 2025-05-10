@@ -242,14 +242,49 @@ class TradingStrategy:
             sr_buy_weight = 0
             sr_sell_weight = 0
             
+            # Get support/resistance weight from indicator weights
+            sr_weight = weights.get('support_resistance', 0.3)  # Default to 0.3 if not found
+            
             if 'support' in curr and 'resistance' in curr and 'dist_to_support' in curr and 'dist_to_resistance' in curr:
-                if not np.isnan(curr['support']) and curr['support'] > 0 and curr['dist_to_support'] < 0.005:
+                if not np.isnan(curr['support']) and curr['support'] > 0 and curr['dist_to_support'] < 0.01:
                     sr_buy_signal = True
-                    sr_buy_weight = 0.25 * (1 - curr['dist_to_support'] / 0.005)
+                    base_weight = 0.8 * (1 - curr['dist_to_support'] / 0.01)
                     
-                if not np.isnan(curr['resistance']) and curr['resistance'] > 0 and curr['dist_to_resistance'] < 0.005:
+                    if 'support_tests' in curr and curr['support_tests'] > 3:
+                        base_weight += 0.2 * min(curr['support_tests'] / 10, 0.5)
+                    
+                    # Apply support/resistance weight from indicator weights
+                    sr_buy_weight = base_weight * sr_weight
+                
+                if not np.isnan(curr['resistance']) and curr['resistance'] > 0 and curr['dist_to_resistance'] < 0.01:
                     sr_sell_signal = True
-                    sr_sell_weight = 0.25 * (1 - curr['dist_to_resistance'] / 0.005)
+                    # Base weight increases as price gets closer to resistance
+                    base_weight = 0.8 * (1 - curr['dist_to_resistance'] / 0.01)
+                    
+                    if 'resistance_tests' in curr and curr['resistance_tests'] > 3:
+                        base_weight += 0.2 * min(curr['resistance_tests'] / 10, 0.5)
+                    
+                    # Apply support/resistance weight from indicator weights
+                    sr_sell_weight = base_weight * sr_weight
+                
+                if i > 1 and not np.isnan(curr['support']) and curr['support'] > 0:
+                    prev_dist = df.iloc[i-1]['dist_to_support'] if 'dist_to_support' in df.iloc[i-1] else float('inf')
+                    curr_dist = curr['dist_to_support']
+                    
+                    if prev_dist < 0.005 and curr_dist > prev_dist:
+                        sr_buy_signal = True
+                        bounce_weight = 0.9 * sr_weight  # Strong weight for bounce signals
+                        sr_buy_weight = max(sr_buy_weight, bounce_weight)
+                
+                # Price rejecting from resistance - stronger sell signal
+                if i > 1 and not np.isnan(curr['resistance']) and curr['resistance'] > 0:
+                    prev_dist = df.iloc[i-1]['dist_to_resistance'] if 'dist_to_resistance' in df.iloc[i-1] else float('inf')
+                    curr_dist = curr['dist_to_resistance']
+                    
+                    if prev_dist < 0.005 and curr_dist > prev_dist:
+                        sr_sell_signal = True
+                        rejection_weight = 0.9 * sr_weight  # Strong weight for rejection signals
+                        sr_sell_weight = max(sr_sell_weight, rejection_weight)
             
             # Calculate buy signal strength with support/resistance
             buy_signal_strength = (
@@ -346,36 +381,39 @@ class TradingStrategy:
         """
         if market_regime == 'bullish':
             return {
-                'rsi': 0.15,
-                'macd': 0.20,
-                'ema': 0.15,
-                'bb': 0.10,
-                'stoch': 0.10,
-                'ema_cross': 0.15,
-                'ichimoku': 0.10,
-                'volume': 0.05
-            }
-        elif market_regime == 'bearish':
-            return {
                 'rsi': 0.10,
                 'macd': 0.15,
                 'ema': 0.10,
-                'bb': 0.20,
-                'stoch': 0.15,
+                'bb': 0.05,
+                'stoch': 0.05,
                 'ema_cross': 0.10,
-                'ichimoku': 0.10,
-                'volume': 0.10
+                'ichimoku': 0.05,
+                'volume': 0.05,
+                'support_resistance': 0.35  # Added significant weight for support/resistance
+            }
+        elif market_regime == 'bearish':
+            return {
+                'rsi': 0.05,
+                'macd': 0.10,
+                'ema': 0.05,
+                'bb': 0.15,
+                'stoch': 0.10,
+                'ema_cross': 0.05,
+                'ichimoku': 0.05,
+                'volume': 0.05,
+                'support_resistance': 0.40  # Added significant weight for support/resistance
             }
         else:  # neutral
             return {
-                'rsi': 0.15,
-                'macd': 0.15,
-                'ema': 0.10,
-                'bb': 0.15,
-                'stoch': 0.15,
-                'ema_cross': 0.10,
-                'ichimoku': 0.10,
-                'volume': 0.10
+                'rsi': 0.10,
+                'macd': 0.10,
+                'ema': 0.05,
+                'bb': 0.10,
+                'stoch': 0.10,
+                'ema_cross': 0.05,
+                'ichimoku': 0.05,
+                'volume': 0.05,
+                'support_resistance': 0.40  # Added significant weight for support/resistance
             }
     
     def apply_risk_management(self, df):

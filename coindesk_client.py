@@ -22,7 +22,7 @@ class CoinDeskClient:
         self.api_key = api_key or "01d76bad5bada316e6df17b512d7e2c1835923a1b89382db1b4d5cbc26b50d17"
         print("CoinDesk client initialized")
     
-    def get_historical_klines(self, symbol='BTC-USDT-VANILLA-PERPETUAL', interval='1h', limit=2000, market='binance'):
+    def get_historical_klines(self, symbol='BTC-USDT-VANILLA-PERPETUAL', interval='1h', limit=2000, market='binance', timeframe='hours'):
         """
         Get historical klines (candlestick data) from CoinDesk.
         
@@ -31,14 +31,15 @@ class CoinDeskClient:
             interval (str): Kline interval (e.g., '1h', '4h', '1d')
             limit (int): Maximum number of records to return
             market (str): Market name (e.g., 'binance')
+            timeframe (str): Data timeframe ('hours' or 'days')
             
         Returns:
             pandas.DataFrame: DataFrame with OHLCV data
         """
         try:
-            print(f"Fetching data for {symbol} from CoinDesk API...")
+            print(f"Fetching data for {symbol} from CoinDesk API with {timeframe} timeframe...")
             
-            url = 'https://data-api.coindesk.com/futures/v1/historical/hours'
+            url = f'https://data-api.coindesk.com/futures/v1/historical/{timeframe}'
             
             params = {
                 'market': market,
@@ -54,8 +55,14 @@ class CoinDeskClient:
             if interval != '1h':
                 if interval == '4h':
                     params['aggregate'] = 4
-                elif interval == '1d':
+                elif interval == '1d' and timeframe == 'hours':
                     params['aggregate'] = 24
+                elif interval == '1d' and timeframe == 'days':
+                    params['aggregate'] = 1  # For days timeframe, use aggregate=1
+            
+            if timeframe == 'days':
+                import time
+                params['to_ts'] = int(time.time())
             
             response = requests.get(url, params=params)
             response.raise_for_status()
