@@ -13,7 +13,7 @@ from coindesk_client import CoinDeskClient
 from indicators import add_indicators
 from strategy import TradingStrategy
 from sui_backtester import Backtester
-from support_resistance import calculate_dynamic_support_resistance, detect_sr_breakouts
+from sui_support_resistance import calculate_sui_support_resistance, detect_sui_sr_breakouts
 import config
 
 logging.basicConfig(
@@ -59,7 +59,15 @@ def main():
     processed_df = add_indicators(df)
     logger.info(f"Processed {len(processed_df)} rows of data")
     
-    logger.info("Analyzing support and resistance zones")
+    logger.info("Analyzing support and resistance zones with SUI-optimized parameters")
+    processed_df = calculate_sui_support_resistance(
+        processed_df, 
+        pivot_period=7,
+        max_pivot_count=40,
+        channel_width_pct=5,
+        max_sr_count=8,
+        min_strength=1
+    )
     
     processed_data_path = f"results/processed_SUI_USDT_VANILLA_PERPETUAL_{timestamp}.csv"
     processed_df.to_csv(processed_data_path)
