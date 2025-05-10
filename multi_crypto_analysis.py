@@ -90,14 +90,17 @@ def analyze_cryptocurrency(symbol, timeframe='hours', interval='1h', limit=2000,
             support_bias=0.2
         )
     else:
-        logger.info("Analyzing support and resistance zones with standard parameters")
-        processed_df = calculate_dynamic_support_resistance(
+        logger.info("Analyzing support and resistance zones with enhanced detection for BTC")
+        from enhanced_resistance_detection import calculate_enhanced_support_resistance
+        processed_df = calculate_enhanced_support_resistance(
             processed_df,
             pivot_period=10,
             max_pivot_count=30,
-            channel_width_pct=10,
-            max_sr_count=5,
-            min_strength=2
+            channel_width_pct=8,
+            max_sr_count=6,
+            min_strength=2,
+            resistance_bias=0.7,
+            support_bias=0.3
         )
     
     processed_data_path = f"results/processed_{symbol}_{timestamp}.csv"
