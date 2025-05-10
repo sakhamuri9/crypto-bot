@@ -184,11 +184,11 @@ def add_indicators(df):
         # Calculate dynamic support and resistance levels
         sr_df = calculate_dynamic_support_resistance(
             df,
-            pivot_period=10,           # Pivot Period from PineScript
-            max_pivot_count=20,        # Maximum Number of Pivot from PineScript
-            channel_width_pct=10,      # Maximum Channel Width % from PineScript
-            max_sr_count=5,            # Maximum Number of S/R from PineScript
-            min_strength=2             # Minimum Strength from PineScript
+            pivot_period=8,            # Reduced pivot period for more sensitivity
+            max_pivot_count=30,        # Increased max pivot count for more data points
+            channel_width_pct=5,       # Reduced channel width for tighter zones
+            max_sr_count=7,            # Increased max S/R count for more levels
+            min_strength=3             # Increased min strength for stronger zones
         )
         
         df['resistance'] = sr_df['resistance']

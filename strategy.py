@@ -237,11 +237,25 @@ class TradingStrategy:
             volume_buy = curr['obv'] > prev['obv'] * 1.02  # 2% increase in OBV
             volume_buy_weight = weights['volume'] if volume_buy else 0
             
-            # Calculate buy signal strength
+            sr_buy_signal = False
+            sr_sell_signal = False
+            sr_buy_weight = 0
+            sr_sell_weight = 0
+            
+            if 'support' in curr and 'resistance' in curr and 'dist_to_support' in curr and 'dist_to_resistance' in curr:
+                if not np.isnan(curr['support']) and curr['support'] > 0 and curr['dist_to_support'] < 0.005:
+                    sr_buy_signal = True
+                    sr_buy_weight = 0.25 * (1 - curr['dist_to_support'] / 0.005)
+                    
+                if not np.isnan(curr['resistance']) and curr['resistance'] > 0 and curr['dist_to_resistance'] < 0.005:
+                    sr_sell_signal = True
+                    sr_sell_weight = 0.25 * (1 - curr['dist_to_resistance'] / 0.005)
+            
+            # Calculate buy signal strength with support/resistance
             buy_signal_strength = (
                 rsi_buy_weight + macd_buy_weight + ema_buy_weight + 
                 bb_buy_weight + stoch_buy_weight + ema_cross_buy_weight +
-                ichimoku_buy_weight + volume_buy_weight
+                ichimoku_buy_weight + volume_buy_weight + sr_buy_weight
             )
             
             rsi_sell_signal = prev['rsi'] > config.RSI_OVERBOUGHT and curr['rsi'] < config.RSI_OVERBOUGHT
@@ -272,11 +286,11 @@ class TradingStrategy:
             volume_sell = curr['obv'] < prev['obv'] * 0.98  # 2% decrease in OBV
             volume_sell_weight = weights['volume'] if volume_sell else 0
             
-            # Calculate sell signal strength
+            # Calculate sell signal strength with support/resistance
             sell_signal_strength = (
                 rsi_sell_weight + macd_sell_weight + ema_sell_weight + 
                 bb_sell_weight + stoch_sell_weight + ema_cross_sell_weight +
-                ichimoku_sell_weight + volume_sell_weight
+                ichimoku_sell_weight + volume_sell_weight + sr_sell_weight
             )
             
             if buy_signal_strength >= config.SIGNAL_THRESHOLD:
