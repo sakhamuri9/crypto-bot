@@ -4,13 +4,15 @@ Advanced technical indicators for trading strategy with adaptive features.
 import pandas as pd
 import numpy as np
 import ta
+import logging
 from ta.trend import MACD, SMAIndicator, EMAIndicator, IchimokuIndicator, ADXIndicator
 from ta.momentum import RSIIndicator, StochasticOscillator, TSIIndicator, WilliamsRIndicator
 from ta.volatility import BollingerBands, KeltnerChannel, AverageTrueRange
 from ta.volume import OnBalanceVolumeIndicator, AccDistIndexIndicator, MFIIndicator
 from ta.others import DailyReturnIndicator, CumulativeReturnIndicator
-from scipy.signal import find_peaks
 import config
+
+logger = logging.getLogger(__name__)
 
 def add_indicators(df):
     """
@@ -177,46 +179,28 @@ def add_indicators(df):
     df['volatility_ratio'] = df['volatility_20'] / df['volatility_20'].rolling(window=100).mean()
     
     try:
-        price_series = df['close'].values
-        peaks, _ = find_peaks(price_series, distance=10, prominence=1)
-        troughs, _ = find_peaks(-price_series, distance=10, prominence=1)
+        from support_resistance import calculate_dynamic_support_resistance
         
-        df['resistance'] = np.nan
-        df['support'] = np.nan
-        df['resistance_tests'] = 0
-        df['support_tests'] = 0
+        # Calculate dynamic support and resistance levels
+        sr_df = calculate_dynamic_support_resistance(
+            df,
+            pivot_period=10,           # Pivot Period from PineScript
+            max_pivot_count=20,        # Maximum Number of Pivot from PineScript
+            channel_width_pct=10,      # Maximum Channel Width % from PineScript
+            max_sr_count=5,            # Maximum Number of S/R from PineScript
+            min_strength=2             # Minimum Strength from PineScript
+        )
         
-        for peak in peaks:
-            df.iloc[peak, df.columns.get_loc('resistance')] = df.iloc[peak]['close']
+        df['resistance'] = sr_df['resistance']
+        df['support'] = sr_df['support']
+        df['resistance_tests'] = sr_df['resistance_tests']
+        df['support_tests'] = sr_df['support_tests']
+        df['dist_to_resistance'] = sr_df['dist_to_resistance']
+        df['dist_to_support'] = sr_df['dist_to_support']
         
-        for trough in troughs:
-            df.iloc[trough, df.columns.get_loc('support')] = df.iloc[trough]['close']
-        
-        df['resistance'] = df['resistance'].fillna(method='ffill')
-        df['support'] = df['support'].fillna(method='ffill')
-        
-        resistance_zone_threshold = 0.005  # 0.5% threshold
-        support_zone_threshold = 0.005     # 0.5% threshold
-        
-        for i in range(1, len(df)):
-            if df['resistance'].iloc[i] > 0:
-                price_to_res_ratio = (df['high'].iloc[i] - df['resistance'].iloc[i]) / df['resistance'].iloc[i]
-                if -resistance_zone_threshold <= price_to_res_ratio <= 0.001:
-                    df.iloc[i, df.columns.get_loc('resistance_tests')] = df.iloc[i-1, df.columns.get_loc('resistance_tests')] + 1
-                else:
-                    df.iloc[i, df.columns.get_loc('resistance_tests')] = df.iloc[i-1, df.columns.get_loc('resistance_tests')]
-            
-            if df['support'].iloc[i] > 0:
-                price_to_sup_ratio = (df['low'].iloc[i] - df['support'].iloc[i]) / df['support'].iloc[i]
-                if -0.001 <= price_to_sup_ratio <= support_zone_threshold:
-                    df.iloc[i, df.columns.get_loc('support_tests')] = df.iloc[i-1, df.columns.get_loc('support_tests')] + 1
-                else:
-                    df.iloc[i, df.columns.get_loc('support_tests')] = df.iloc[i-1, df.columns.get_loc('support_tests')]
-        
-        df['dist_to_resistance'] = (df['resistance'] - df['close']) / df['close']
-        df['dist_to_support'] = (df['close'] - df['support']) / df['close']
     except Exception as e:
-        # If peak detection fails, continue without these indicators
+        logger.error(f"Error calculating support and resistance: {str(e)}")
+        # If support/resistance calculation fails, continue without these indicators
         pass
     
     df['daily_return'] = df['close'].pct_change()
@@ -230,7 +214,16 @@ def add_indicators(df):
     
     df['momentum'] = df['close'] / df['close'].shift(10) - 1
     
-    df.dropna(inplace=True)
+    if 'resistance' in df.columns:
+        df['resistance'] = df['resistance'].ffill().bfill()
+    if 'support' in df.columns:
+        df['support'] = df['support'].ffill().bfill()
+    if 'dist_to_resistance' in df.columns:
+        df['dist_to_resistance'] = df['dist_to_resistance'].fillna(0)
+    if 'dist_to_support' in df.columns:
+        df['dist_to_support'] = df['dist_to_support'].fillna(0)
+    
+    df = df.dropna(subset=['close', 'high', 'low', 'open', 'rsi', 'macd', 'bb_middle'])
     
     return df
 

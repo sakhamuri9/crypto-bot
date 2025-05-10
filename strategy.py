@@ -73,15 +73,25 @@ class TradingStrategy:
             prediction_window (int): Number of periods to predict ahead
             
         Returns:
-            object: Trained model
+            object: Trained model or None if insufficient data
         """
         logger.info("Training machine learning model for signal optimization")
+        
+        if len(df) < 30:  # Minimum required rows for meaningful ML training
+            logger.warning(f"Insufficient data for ML model training: {len(df)} rows available, minimum 30 required")
+            self.model = None
+            return None
         
         df['future_return'] = df['close'].pct_change(prediction_window).shift(-prediction_window)
         df['target'] = np.where(df['future_return'] > config.ML_THRESHOLD, 1, 
                                np.where(df['future_return'] < -config.ML_THRESHOLD, -1, 0))
         
         df = df.dropna()
+        
+        if len(df) < 30:
+            logger.warning(f"Insufficient data after preprocessing: {len(df)} rows available, minimum 30 required")
+            self.model = None
+            return None
         
         feature_columns = [
             'rsi', 'macd', 'macd_signal', 'macd_diff', 
@@ -92,19 +102,38 @@ class TradingStrategy:
         
         feature_columns = [col for col in feature_columns if col in df.columns]
         
+        if not feature_columns:
+            logger.warning("No valid feature columns found in the dataframe")
+            self.model = None
+            return None
+        
         X = df[feature_columns].values
         y = df['target'].values
         
+        min_test_samples = 10
+        if len(X) <= min_test_samples:
+            logger.warning(f"Not enough samples for train-test split: {len(X)} available")
+            self.model = None
+            return None
+        
+        # Calculate test_size to ensure at least min_test_samples in test set
+        test_size = max(0.2, min(0.3, min_test_samples / len(X)))
+        
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.3, shuffle=False
+            X, y, test_size=test_size, shuffle=False
         )
+        
+        if len(X_train) < 20:
+            logger.warning(f"Training set too small after split: {len(X_train)} samples")
+            self.model = None
+            return None
         
         X_train = self.scaler.fit_transform(X_train)
         X_test = self.scaler.transform(X_test)
         
         model = RandomForestClassifier(random_state=42)
         
-        if config.USE_GRID_SEARCH:
+        if config.USE_GRID_SEARCH and len(X_train) >= 50:  # Only use grid search with sufficient data
             param_grid = {
                 'n_estimators': [50, 100, 200],
                 'max_depth': [None, 10, 20, 30],
@@ -115,7 +144,7 @@ class TradingStrategy:
             grid_search = GridSearchCV(
                 estimator=model,
                 param_grid=param_grid,
-                cv=5,
+                cv=min(5, len(X_train) // 10),  # Ensure CV folds are appropriate for data size
                 scoring='f1_weighted',
                 n_jobs=-1
             )
