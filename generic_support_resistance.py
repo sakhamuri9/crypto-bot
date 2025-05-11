@@ -422,6 +422,45 @@ def analyze_cryptocurrency(symbol, timeframes=[('1h', 'hours'), ('4h', 'hours')]
     
     return results
 
+def detect_support_resistance_levels(df, symbol, timeframe='1h', num_levels=5):
+    """
+    Detect both support and resistance levels and add them to the DataFrame.
+    
+    Args:
+        df (pandas.DataFrame): DataFrame with price data
+        symbol (str): Symbol being analyzed
+        timeframe (str): Timeframe of the data (e.g., '1h', '4h', '1d')
+        num_levels (int): Number of levels to detect
+        
+    Returns:
+        pandas.DataFrame: DataFrame with support and resistance levels added
+    """
+    logger.info(f"Detecting support and resistance levels for {symbol} with {timeframe} timeframe")
+    
+    result_df = df.copy()
+    
+    # Detect resistance levels
+    resistance_levels = detect_resistance_levels(df, symbol, num_levels)
+    
+    # Detect support levels
+    support_levels = detect_support_levels(df, symbol, num_levels)
+    
+    if resistance_levels:
+        result_df['resistance'] = np.nan
+        for level in resistance_levels:
+            mask = (result_df['high'] >= level * 0.995) & (result_df['high'] <= level * 1.005)
+            result_df.loc[mask, 'resistance'] = level
+    
+    if support_levels:
+        result_df['support'] = np.nan
+        for level in support_levels:
+            mask = (result_df['low'] <= level * 1.005) & (result_df['low'] >= level * 0.995)
+            result_df.loc[mask, 'support'] = level
+    
+    logger.info(f"Added {len(resistance_levels)} resistance levels and {len(support_levels)} support levels to DataFrame")
+    
+    return result_df
+
 def main():
     """
     Main function to analyze multiple cryptocurrencies.
