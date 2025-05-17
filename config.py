@@ -44,3 +44,7 @@ ATR_STOP_LOSS_MULTIPLIER = 2.0  # ATR multiplier for dynamic stop loss
 ATR_TAKE_PROFIT_MULTIPLIER = 4.0  # ATR multiplier for dynamic take profit
 MAX_DRAWDOWN_PCT = 0.15  # Maximum allowed drawdown before reducing position size
 INITIAL_CAPITAL = 10000.0  # Initial capital for backtesting
+
+# Grid trading configuration
+GRID_SPACING = 100.0  # Price difference between grid levels
+MAX_GRID_ORDERS = 10  # Maximum number of simultaneously open grid orders
